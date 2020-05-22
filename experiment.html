@@ -31,6 +31,14 @@
     // simple reaction time experiment from jsPsych
     var timeline = [];
 
+    // generate a random subject ID with 15 characters
+    var subject_id = jsPsych.randomization.randomID(15);
+
+    // this adds a property called 'subject' to every trial
+    jsPsych.data.addProperties({
+        subject: subject_id
+    });
+
     /* define welcome message trial */
     var welcome = {
         type: "html-keyboard-response",
@@ -179,10 +187,13 @@
         { targ_opt1_opt2: ['img/face_99.jpg', 'img/face_70.jpg', 'img/face_48.jpg'] },
         { targ_opt1_opt2: ['img/face_100.jpg', 'img/face_59.jpg', 'img/face_95.jpg'] },
     ];
+
+    // preload all of our images
     var load_ims = [];
     for (i = 1; i < 100; i++) { // we won't use all 101 faces, but eh.
         load_ims[i] = "img/face_" + i + ".jpg";
     }
+    load_ims.push(['img/prac1_target.png', 'img/prac1_incorrect.png', 'img/prac1_correct.png', 'img/prac2_target.png', 'img/prac2_incorrect.png', 'img/prac2_correct.png']);
 
     /////////////////////////////////////////////// INSTRUCTION 2 ///////////////////////////////////////////////
 
@@ -208,7 +219,7 @@
 
     /////////////////////////////////////////////// EXPT BLOCK ///////////////////////////////////////////////
 
-    // assemble practice trials
+    // assemble test trials
     var test = {
         type: 'imageTriad-keyboard-response',
         targ_opt1_opt2: jsPsych.timelineVariable('targ_opt1_opt2'),
@@ -216,14 +227,17 @@
         image_size: 150, // height and width of all three images
         prompt: '<p>Which face looks most similar to <span style="color: green; font-weight: bold;">this one?</span></p>',
         randomize_LR: true, // boolean that determines if we'll randomly select which optIm is left (1) and which is right (2)
-        post_trial_gap: 500
-        //data: jsPsych.timelineVariable('data'), // tracking the test_part and correct_response from test_stimuli
-        //on_finish: function(data){
-        //data.correct = data.key_press == jsPsych.pluginAPI.convertKeyCharacterToKeyCode(data.correct_response);
-        //},
+        post_trial_gap: 500,
+        on_finish: function (data) { // recode f and j into 1/2 (left/right)
+            if (data.key_press == 70) {
+                data.choice = 1;
+            } else {
+                data.choice = 2;
+            }
+        }
     };
 
-    // set practice procesure
+    // set test procedure
     var test_procedure = {
         timeline: [test],
         timeline_variables: test_stimuli,
@@ -257,12 +271,21 @@
     jsPsych.init({
         timeline: timeline,
         preload_images: load_ims,
-        on_finish: function () {
-            jsPsych.data.displayData();
-        }
+        on_finish: function () { saveData("experiment_data", jsPsych.data.get().csv()); }
+        //on_finish: function () {
+            // jsPsych.data.displayData();
+       // }
     });
 
 
-</script>
 
+    function saveData(name, data) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'write_data.php'); // 'write_data.php' is the path to the php file described above.
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({ filename: subject_id + "_behavCNN", filedata: data }));
+    }
+
+
+</script>
 </html>
