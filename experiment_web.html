@@ -8,6 +8,7 @@
 4. task check (in your own words, what is the task you're about to do?)
 5. experiment (...add catch trials)
 6. self-reported performance (how well did you try to do the task?)
+7. this is the non-turk version of the experiment, and collects some data from the subject at the end
 -->
 
 
@@ -18,6 +19,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="jspsych-6.1.0/jspsych.js"></script>
     <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-image-keyboard-response.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-call-function.js"></script>
     <script src="jspsych-6.1.0/plugins/jspsych-survey-text.js"></script>
     <script src="jspsych-imageTriad-keyboard-response.js"></script>
     <link href="jspsych_helveticaLight.css" rel="stylesheet" type="text/css">
@@ -41,8 +44,13 @@
 
     /* define welcome message trial */
     var welcome = {
-        type: "html-keyboard-response",
-        stimulus: "Welcome to the experiment. Press any key to begin.",
+        type: "image-keyboard-response",
+        stimulus: "img/stanfordsunset.png",
+        prompt: "<p>By answering the following questions, you are participating in a study being performed by researchers in the Stanford Department of Psychology. </p>" +
+            "<p> If you have questions about this research, please contact us at <a href='mailto:sonia09@stanford.edu'> sonia09@stanford.edu.</a> You must be at least 18 years old to participate. </p>" +
+            "<p>Your participation in this research is voluntary, and you may decline further participation at any time, without adverse consequences. </p>" +
+            "<p>Your anonymity is assured, and the researchers will not receive any personal information about you.</p>" +
+            "<p><p style='color: green; font-weight: bold;'>Press any key to begin.</p>",
         post_trial_gap: 500
     };
     timeline.push(welcome);
@@ -194,6 +202,7 @@
         load_ims[i] = "img/face_" + i + ".jpg";
     }
     load_ims.push(['img/prac1_target.png', 'img/prac1_incorrect.png', 'img/prac1_correct.png', 'img/prac2_target.png', 'img/prac2_incorrect.png', 'img/prac2_correct.png']);
+    load_ims.push('img/stanfordsunset.png');
 
     /////////////////////////////////////////////// INSTRUCTION 2 ///////////////////////////////////////////////
 
@@ -251,18 +260,25 @@
     // check subject's self-evaluation of performance
     var check2 = {
         type: 'survey-text',
-        preamble: '<p> You have finished the experimental trials. Please take a moment to evaluate your performance of the experiment.</p>' +
-            '<p>It helps us control data quality, but has <span style="color: green; font-weight: bold;">no bearing on your mTurk payment - you will be paid no matter what</span>.</p>',
+        preamble: '<p> You have finished the experimental trials.</p>' +
+            '<p>Please take a moment to evaluate your performance of the experiment; this helps us control data quality.</p>',
         questions: [
-            { prompt: "Did you perform this task as instructed, to the best of your ability?" }//, placeholder: "City, State/Province, Country" }
+            { prompt: "Did you perform this task as instructed, to the best of your ability?" },
+            { prompt: "Do you have any additional comments for the experimenter?" }//, placeholder: "City, State/Province, Country" }
         ],
     };
 
     timeline.push(check2);
 
+     // save data
+     timeline.push({
+        type: 'call-function',
+        func:  function () { saveData("experiment_data", jsPsych.data.get().csv()); }
+    });
+
     var debrief = {
         type: 'html-keyboard-response',
-        stimulus: '<p> Thank you! Press any key to complete the experiment.</p>'
+        stimulus: '<p> Thank you! You have finished the experiment.</p>'
     }
 
     timeline.push(debrief);
@@ -271,21 +287,22 @@
     jsPsych.init({
         timeline: timeline,
         preload_images: load_ims,
-        on_finish: function () { saveData("experiment_data", jsPsych.data.get().csv()); }
+        // on_finish: function () { saveData("experiment_data", jsPsych.data.get().csv()); }
         //on_finish: function () {
-            // jsPsych.data.displayData();
-       // }
+        // jsPsych.data.displayData();
+        // }
     });
 
 
 
     function saveData(name, data) {
         var xhr = new XMLHttpRequest();
-        xhr.open('POST', 'write_data.php'); // 'write_data.php' is the path to the php file described above.
+        xhr.open('POST', 'http://web.stanford.edu/~sonia09/cgi-bin/write_data.php'); // 'write_data.php' is the path to the php file described above.
         xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(JSON.stringify({ filename: subject_id + "_behavCNN", filedata: data }));
+        xhr.send(JSON.stringify({ filename: 'behavCNN_' + subject_id, filedata: data }));
     }
 
 
 </script>
+
 </html>
